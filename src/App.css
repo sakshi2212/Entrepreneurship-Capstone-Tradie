@@ -36,3 +36,12 @@
     transform: rotate(360deg);
   }
 }
+
+
+.App {
+  display: flex;
+  height: 100vh;
+  background-color: #1e1e1e;
+  color: white;
+  font-family: 'Arial', sans-serif;
+}
