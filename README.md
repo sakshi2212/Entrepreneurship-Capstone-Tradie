@@ -1,4 +1,4 @@
-# Financial Market Chatbot Tool
+# AI Trading Copilot - Tradie
 
 ## Introduction
 
@@ -25,3 +25,12 @@ To run this application locally, follow these steps:
 1. **Clone the Repository**:
    ```bash
    git clone https://github.com/your-username/your-repo.git
+2. **Navigate to the Project Directory**:
+   ```bash
+   cd your-repo
+3. **Install Dependencies**:
+   ```bash
+   npm install
+4. **Run the Development Server**:
+   ```bash
+   npm run dev
