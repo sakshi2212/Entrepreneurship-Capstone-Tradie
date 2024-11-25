@@ -8,6 +8,7 @@ import { getPerplexityResponse } from "@/services/perplexity";
 import { ChatMessage } from "@/types/api";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Components } from "react-markdown/lib/ast-to-react";
 
 export const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -57,6 +58,37 @@ export const ChatInterface: React.FC = () => {
     }
   };
 
+  const markdownComponents: Components = {
+    h1: ({children}) => <h1 className="text-2xl font-bold mt-4 mb-2 text-primary">{children}</h1>,
+    h2: ({children}) => <h2 className="text-xl font-bold mt-3 mb-2 text-primary/90">{children}</h2>,
+    h3: ({children}) => <h3 className="text-lg font-bold mt-3 mb-2 text-primary/80">{children}</h3>,
+    p: ({children}) => <p className="mb-2 leading-relaxed">{children}</p>,
+    ul: ({children}) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
+    ol: ({children}) => <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>,
+    li: ({children}) => <li className="ml-2">{children}</li>,
+    code: ({children, className}) => {
+      const isInline = !className;
+      return isInline ? (
+        <code className="bg-secondary/30 px-1 py-0.5 rounded text-primary">{children}</code>
+      ) : (
+        <code className="block bg-secondary/30 p-3 rounded-lg my-2 text-sm overflow-x-auto">{children}</code>
+      );
+    },
+    blockquote: ({children}) => (
+      <blockquote className="border-l-4 border-primary/30 pl-4 italic my-2">{children}</blockquote>
+    ),
+    a: ({children, href}) => (
+      <a 
+        className="text-primary hover:underline" 
+        href={href} 
+        target="_blank" 
+        rel="noopener noreferrer"
+      >
+        {children}
+      </a>
+    ),
+  };
+
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-border bg-card/50 p-4">
@@ -77,23 +109,7 @@ export const ChatInterface: React.FC = () => {
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]}
                     className="markdown-content"
-                    components={{
-                      h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2 text-primary" {...props} />,
-                      h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-3 mb-2 text-primary/90" {...props} />,
-                      h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-3 mb-2 text-primary/80" {...props} />,
-                      p: ({node, ...props}) => <p className="mb-2 leading-relaxed" {...props} />,
-                      ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
-                      ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
-                      li: ({node, ...props}) => <li className="ml-2" {...props} />,
-                      code: ({node, inline, ...props}) => 
-                        inline ? 
-                          <code className="bg-secondary/30 px-1 py-0.5 rounded text-primary" {...props} /> :
-                          <code className="block bg-secondary/30 p-3 rounded-lg my-2 text-sm overflow-x-auto" {...props} />,
-                      blockquote: ({node, ...props}) => 
-                        <blockquote className="border-l-4 border-primary/30 pl-4 italic my-2" {...props} />,
-                      a: ({node, ...props}) => 
-                        <a className="text-primary hover:underline" {...props} target="_blank" rel="noopener noreferrer" />,
-                    }}
+                    components={markdownComponents}
                   >
                     {message.content}
                   </ReactMarkdown>
