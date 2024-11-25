@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    --background: 222 47% 4%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 6%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 4%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 189 100% 50%;
+    --primary-foreground: 222 47% 1%;
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 189 100% 50%;
+    --accent-foreground: 222 47% 1%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 189 100% 50%;
+    --radius: 0.75rem;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    scroll-behavior: smooth;
+  }
+}
+
+.glass-effect {
+  @apply bg-secondary/30 backdrop-blur-md border border-border/20;
+}
+
+.nav-item {
+  @apply px-4 py-2 rounded-lg transition-all duration-200 hover:bg-primary/10 hover:text-primary;
+}
+
+.nav-item.active {
+  @apply bg-primary/20 text-primary;
+}
+
+.gradient-text {
+  @apply bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent;
+}
+
+.card-hover {
+  @apply transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20;
+}
+
+.markdown-content {
+  @apply text-sm leading-relaxed;
+}
+
+.markdown-content h1 {
+  @apply text-2xl font-bold mt-4 mb-2 text-primary;
+}
+
+.markdown-content h2 {
+  @apply text-xl font-bold mt-3 mb-2 text-primary/90;
+}
+
+.markdown-content h3 {
+  @apply text-lg font-bold mt-3 mb-2 text-primary/80;
+}
+
+.markdown-content p {
+  @apply mb-2;
+}
+
+.markdown-content ul {
+  @apply list-disc pl-4 mb-2 space-y-1;
+}
+
+.markdown-content ol {
+  @apply list-decimal pl-4 mb-2 space-y-1;
+}
+
+.markdown-content li {
+  @apply ml-2;
+}
+
+.markdown-content code {
+  @apply bg-secondary/30 px-1 py-0.5 rounded;
+}
+
+.markdown-content pre {
+  @apply bg-secondary/30 p-3 rounded-lg my-2 overflow-x-auto;
+}
+
+.markdown-content blockquote {
+  @apply border-l-4 border-primary/30 pl-4 italic my-2;
+}
+
+.markdown-content a {
+  @apply text-primary hover:underline;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0% { box-shadow: 0 0 5px rgba(0,200,255,0.2); }
+  50% { box-shadow: 0 0 20px rgba(0,200,255,0.4); }
+  100% { box-shadow: 0 0 5px rgba(0,200,255,0.2); }
+}
+
+.glow-effect {
+  animation: glow 3s ease-in-out infinite;
+}
