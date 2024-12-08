@@ -1,52 +1,86 @@
-import React from "react";
+import { Components } from "react-markdown";
+import type { DetailedHTMLProps, HTMLAttributes } from "react";
 
-interface MarkdownProps {
-  children?: React.ReactNode;
-  className?: string;
-  href?: string;
-}
+type HeadingProps = DetailedHTMLProps<HTMLAttributes<HTMLHeadingElement>, HTMLHeadingElement>;
+type ParagraphProps = DetailedHTMLProps<HTMLAttributes<HTMLParagraphElement>, HTMLParagraphElement>;
+type ListProps = DetailedHTMLProps<HTMLAttributes<HTMLUListElement>, HTMLUListElement>;
+type OrderedListProps = DetailedHTMLProps<HTMLAttributes<HTMLOListElement>, HTMLOListElement>;
+type ListItemProps = DetailedHTMLProps<HTMLAttributes<HTMLLIElement>, HTMLLIElement>;
+type BlockquoteProps = DetailedHTMLProps<HTMLAttributes<HTMLQuoteElement>, HTMLQuoteElement>;
+type LinkProps = DetailedHTMLProps<HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement> & { href?: string };
+type CodeProps = DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement> & { inline?: boolean };
 
-export const MarkdownComponents = {
-  h1: (props: MarkdownProps) => (
-    <h1 className="text-2xl font-bold mt-4 mb-2 text-primary">{props.children}</h1>
+export const MarkdownComponents: Components = {
+  h1: ({ children, ...props }: HeadingProps) => (
+    <h1 {...props} className="text-2xl font-bold mb-4 text-primary/90 tracking-tight">{children}</h1>
   ),
-  h2: (props: MarkdownProps) => (
-    <h2 className="text-xl font-bold mt-3 mb-2 text-primary/90">{props.children}</h2>
+
+  h2: ({ children, ...props }: HeadingProps) => (
+    <h2 {...props} className="text-xl font-semibold mb-3 text-primary/90 tracking-tight">{children}</h2>
   ),
-  h3: (props: MarkdownProps) => (
-    <h3 className="text-lg font-bold mt-3 mb-2 text-primary/80">{props.children}</h3>
+
+  h3: ({ children, ...props }: HeadingProps) => (
+    <h3 {...props} className="text-lg font-medium mb-2 text-primary/80 tracking-tight">{children}</h3>
   ),
-  p: (props: MarkdownProps) => (
-    <p className="mb-2 leading-relaxed">{props.children}</p>
+
+  p: ({ children, ...props }: ParagraphProps) => (
+    <p {...props} className="mb-3 leading-7 text-foreground/90">{children}</p>
   ),
-  ul: (props: MarkdownProps) => (
-    <ul className="list-disc pl-4 mb-2 space-y-1">{props.children}</ul>
+
+  ul: ({ children, ...props }: ListProps) => (
+    <ul {...props} className="list-disc ml-5 mb-4 space-y-1.5 text-foreground/90">{children}</ul>
   ),
-  ol: (props: MarkdownProps) => (
-    <ol className="list-decimal pl-4 mb-2 space-y-1">{props.children}</ol>
+
+  ol: ({ children, ...props }: OrderedListProps) => (
+    <ol {...props} className="list-decimal ml-5 mb-4 space-y-1.5 text-foreground/90">{children}</ol>
   ),
-  li: (props: MarkdownProps) => (
-    <li className="ml-2">{props.children}</li>
+
+  li: ({ children, ...props }: ListItemProps) => (
+    <li {...props} className="text-foreground/90 leading-7">{children}</li>
   ),
-  code: (props: MarkdownProps) => {
-    const isInline = !props.className;
-    return isInline ? (
-      <code className="bg-secondary/30 px-1 py-0.5 rounded text-primary">{props.children}</code>
-    ) : (
-      <code className="block bg-secondary/30 p-3 rounded-lg my-2 text-sm overflow-x-auto">{props.children}</code>
+
+  code: ({ inline, children, ...props }: CodeProps) => {
+    if (inline) {
+      return (
+        <code {...props} className="bg-muted/60 px-1.5 py-0.5 rounded font-mono text-sm text-primary">
+          {children}
+        </code>
+      );
+    }
+    return (
+      <pre className="bg-muted/60 p-4 rounded-lg overflow-x-auto mb-4 border border-border/20">
+        <code {...props} className="font-mono text-sm text-primary">{children}</code>
+      </pre>
     );
   },
-  blockquote: (props: MarkdownProps) => (
-    <blockquote className="border-l-4 border-primary/30 pl-4 italic my-2">{props.children}</blockquote>
+
+  blockquote: ({ children, ...props }: BlockquoteProps) => (
+    <blockquote {...props} className="border-l-4 border-primary/30 pl-4 my-4 text-foreground/80 italic">
+      {children}
+    </blockquote>
   ),
-  a: (props: MarkdownProps) => (
-    <a 
-      className="text-primary hover:underline" 
-      href={props.href} 
-      target="_blank" 
+
+  a: ({ href, children, ...props }: LinkProps) => (
+    <a
+      href={href}
+      target="_blank"
       rel="noopener noreferrer"
+      className="text-primary hover:text-primary/90 hover:underline decoration-primary/30 decoration-2 underline-offset-2 transition-colors"
+      {...props}
     >
-      {props.children}
+      {children}
     </a>
+  ),
+
+  strong: ({ children }) => (
+    <strong className="font-semibold text-primary/90">{children}</strong>
+  ),
+
+  em: ({ children }) => (
+    <em className="italic text-foreground/90">{children}</em>
+  ),
+
+  hr: () => (
+    <hr className="border-t border-border/20 my-6" />
   ),
 };

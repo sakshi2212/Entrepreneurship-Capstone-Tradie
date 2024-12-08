@@ -54,7 +54,7 @@ export default function Home() {
                   </p>
                 </div>
                 
-                <div className="grid gap-12">
+                <div className="space-y-8">
                   <div className="space-y-6">
                     <h3 className="text-2xl font-semibold gradient-text">
                       Track Your Stocks
@@ -64,13 +64,8 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  <div className="space-y-6">
-                    <h3 className="text-2xl font-semibold gradient-text">
-                      Market Insights
-                    </h3>
-                    <div className="glass-effect rounded-xl p-6 card-hover">
-                      <PortfolioAnalysis />
-                    </div>
+                  <div className="glass-effect rounded-xl p-6 card-hover">
+                    <PortfolioAnalysis />
                   </div>
                 </div>
               </div>

@@ -1,18 +1,16 @@
-import { AppProps } from "next/app";
-import { Toaster } from "@/components/ui/toaster";
+import type { AppProps } from "next/app";
+import { ChartProvider } from "@/contexts/ChartContext";
 import { PortfolioProvider } from "@/contexts/PortfolioContext";
-import { StockProvider } from "@/contexts/StockContext"; // Import the StockProvider
+import { Toaster } from "@/components/ui/toaster";
 import "@/styles/globals.css";
 
-function MyApp({ Component, pageProps }: AppProps) {
+export default function App({ Component, pageProps }: AppProps) {
   return (
-    <PortfolioProvider>
-      <StockProvider> {/* Wrap the application with StockProvider */}
+    <ChartProvider>
+      <PortfolioProvider>
         <Component {...pageProps} />
         <Toaster />
-      </StockProvider>
-    </PortfolioProvider>
+      </PortfolioProvider>
+    </ChartProvider>
   );
 }
-
-export default MyApp;

@@ -25,3 +25,18 @@ export interface ChatMessage {
   timestamp: number;
   citations?: string[];
 }
+
+export interface ChartData {
+  symbol: string;
+  interval: string;
+  price?: number;
+  change?: number;
+  changePercent?: number;
+}
+
+export interface Stock {
+  symbol: string;
+  name: string;
+  quantity: number;
+  price: number;
+}

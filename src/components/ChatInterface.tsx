@@ -4,79 +4,20 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Loader2, ExternalLink, Bot } from "lucide-react";
-import { getPerplexityResponse } from "@/services/perplexity";
+import { getPerplexityResponse, extractStockSymbol } from "@/services/perplexity";
 import { ChatMessage } from "@/types/api";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MarkdownComponents } from "@/components/markdown/MarkdownComponents";
-import { useStock } from "@/contexts/StockContext";
-
-const stockMapping: { [key: string]: string } = {
-  // BlackRock: "NYSE:BLK",
-  // Apple: "NASDAQ:AAPL",
-  // Tesla: "NASDAQ:TSLA",
-  // Microsoft: "NASDAQ:MSFT",
-  "BlackRock": "NYSE:BLK",
-  "Apple": "NASDAQ:AAPL",
-  "Tesla": "NASDAQ:TSLA",
-  "Microsoft": "NASDAQ:MSFT",
-  "Google": "NASDAQ:GOOGL",
-  "Amazon": "NASDAQ:AMZN",
-  "Meta": "NASDAQ:META",
-  "Nvidia": "NASDAQ:NVDA",
-  "Netflix": "NASDAQ:NFLX",
-  "Adobe": "NASDAQ:ADBE",
-  "Salesforce": "NYSE:CRM",
-  "Intel": "NASDAQ:INTC",
-  "Cisco": "NASDAQ:CSCO",
-  "PepsiCo": "NASDAQ:PEP",
-  "Coca-Cola": "NYSE:KO",
-  "Johnson & Johnson": "NYSE:JNJ",
-  "Procter & Gamble": "NYSE:PG",
-  "Walmart": "NYSE:WMT",
-  "Target": "NYSE:TGT",
-  "Berkshire Hathaway": "NYSE:BRK.B",
-  "Disney": "NYSE:DIS",
-  "Visa": "NYSE:V",
-  "Mastercard": "NYSE:MA",
-  "PayPal": "NASDAQ:PYPL",
-  "Square": "NYSE:SQ",
-  "Bank of America": "NYSE:BAC",
-  "JP Morgan Chase": "NYSE:JPM",
-  "Morgan Stanley": "NYSE:MS",
-  "Goldman Sachs": "NYSE:GS",
-  "Chevron": "NYSE:CVX",
-  "ExxonMobil": "NYSE:XOM",
-  "Shell": "NYSE:SHEL",
-  "Pfizer": "NYSE:PFE",
-  "Moderna": "NASDAQ:MRNA",
-  "AstraZeneca": "NASDAQ:AZN",
-  "Roche": "OTC:RHHBY",
-  "Toyota": "NYSE:TM",
-  "Ford": "NYSE:F",
-  "General Motors": "NYSE:GM",
-  "BMW": "OTC:BMWYY",
-  "Volkswagen": "OTC:VWAGY",
-  "Sony": "NYSE:SONY",
-  "Samsung": "KRX:005930",
-  "LG": "KRX:066570",
-};
-
-function extractStockSymbol(message: string): string | null {
-  for (const company in stockMapping) {
-    if (message.toLowerCase().includes(company.toLowerCase())) {
-      return stockMapping[company];
-    }
-  }
-  return null;
-}
+import { useChart } from "@/contexts/ChartContext";
+import { toast } from "@/components/ui/use-toast";
 
 export const ChatInterface: React.FC = () => {
-  const { setStockSymbol } = useStock();
+  const { chartData, setChartSymbol } = useChart();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
-      content: "Hello! I'm Tradie, your AI trading copilot. I can help you understand market events, analyze stock movements, and provide insights about company performance. Feel free to ask me anything about the markets!",
+      content: "Hello! I'm Tradie, your AI trading copilot. I can help you understand market events, analyze stock movements, and provide insights about company performance. I'll analyze the chart you're looking at and provide relevant insights. Feel free to ask me anything about the markets!",
       timestamp: Date.now(),
     }
   ]);
@@ -105,7 +46,16 @@ export const ChatInterface: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await getPerplexityResponse(input);
+      const symbolData = await extractStockSymbol(input);
+      if (symbolData?.symbol) {
+        setChartSymbol(symbolData.symbol);
+        toast({
+          title: "Chart Updated",
+          description: `Switched to ${symbolData.symbol.split(":")[1]} based on your query`,
+        });
+      }
+
+      const response = await getPerplexityResponse(input, chartData);
       const assistantMessage: ChatMessage = {
         role: "assistant",
         content: response.content,
@@ -113,13 +63,13 @@ export const ChatInterface: React.FC = () => {
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
-
-      const symbol = extractStockSymbol(response.content);
-      if (symbol) {
-        setStockSymbol(symbol);
-      }
     } catch (error) {
       console.error("Error getting response:", error);
+      toast({
+        title: "Error",
+        description: "Failed to process your request. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -132,7 +82,9 @@ export const ChatInterface: React.FC = () => {
           <Bot className="h-5 w-5 text-primary" />
           <h2 className="font-semibold">Chat with Tradie</h2>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">Ask me about market events, stock movements, or company news</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Currently analyzing: {chartData.symbol} ({chartData.interval})
+        </p>
       </div>
       
       <div className="flex flex-1 flex-col gap-4 p-4 overflow-hidden">
@@ -171,7 +123,7 @@ export const ChatInterface: React.FC = () => {
             {loading && (
               <div className="flex items-center gap-2 text-primary p-4">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm">Finding Relevant Information...</span>
+                <span className="text-sm">Analyzing market data...</span>
               </div>
             )}
           </div>
@@ -181,7 +133,7 @@ export const ChatInterface: React.FC = () => {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about market events..."
+            placeholder={`Ask about ${chartData.symbol} or any market events...`}
             className="flex-1"
             disabled={loading}
           />

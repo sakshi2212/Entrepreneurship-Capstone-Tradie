@@ -6,22 +6,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { usePortfolio } from "@/contexts/PortfolioContext";
 import { toast } from "@/components/ui/use-toast";
-
-export interface Stock {
-  symbol: string;
-  buyPrice: number;
-}
+import { Stock } from "@/types/api";
 
 export const PortfolioManager: React.FC = () => {
   const [symbol, setSymbol] = useState("");
   const [buyPrice, setBuyPrice] = useState("");
+  const [quantity, setQuantity] = useState("");
   const { stocks, addStock, removeStock } = usePortfolio();
 
   const handleAddStock = () => {
-    if (!symbol || !buyPrice) {
+    if (!symbol || !buyPrice || !quantity) {
       toast({
         title: "Error",
-        description: "Please enter both symbol and buy price",
+        description: "Please enter symbol, buy price, and quantity",
         variant: "destructive",
       });
       return;
@@ -29,10 +26,13 @@ export const PortfolioManager: React.FC = () => {
 
     addStock({
       symbol: symbol.toUpperCase(),
-      buyPrice: parseFloat(buyPrice),
+      name: symbol.toUpperCase(),
+      price: parseFloat(buyPrice),
+      quantity: parseInt(quantity),
     });
     setSymbol("");
     setBuyPrice("");
+    setQuantity("");
     
     toast({
       title: "Stock Added",
@@ -56,6 +56,13 @@ export const PortfolioManager: React.FC = () => {
           onChange={(e) => setBuyPrice(e.target.value)}
           className="w-32 bg-background/50"
         />
+        <Input
+          placeholder="Quantity"
+          type="number"
+          value={quantity}
+          onChange={(e) => setQuantity(e.target.value)}
+          className="w-32 bg-background/50"
+        />
         <Button onClick={handleAddStock} className="gap-2 bg-primary hover:bg-primary/90">
           <Plus className="h-4 w-4" />
           Add Stock
@@ -77,7 +84,7 @@ export const PortfolioManager: React.FC = () => {
                 <div>
                   <h3 className="font-semibold text-primary">{stock.symbol}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Buy Price: ${stock.buyPrice.toFixed(2)}
+                    Buy Price: ${stock.price.toFixed(2)} | Quantity: {stock.quantity}
                   </p>
                 </div>
                 <Button
