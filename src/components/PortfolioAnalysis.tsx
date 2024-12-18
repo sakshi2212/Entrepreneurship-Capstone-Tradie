@@ -1,18 +1,72 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, LineChart, TrendingUp, TrendingDown, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, LineChart, ChevronDown, ChevronUp, ExternalLink, AlertTriangle } from "lucide-react";
 import { usePortfolio } from "@/contexts/PortfolioContext";
 import { analyzeTechnicalIndicators, IndicatorAnalysis } from "@/services/technicalAnalysis";
 import { getPortfolioAnalysis } from "@/services/perplexity";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MarkdownComponents } from "@/components/markdown/MarkdownComponents";
+
+const CircularGauge: React.FC<{
+  value: number;
+  maxValue?: number;
+  color: string;
+  size?: number;
+  label: string;
+  description: string;
+}> = ({ value, maxValue = 100, color, size = 120, label, description }) => {
+  const normalizedValue = Math.min(Math.max(0, value), maxValue);
+  const percentage = (normalizedValue / maxValue) * 100;
+  const radius = size / 2 - 10;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="flex flex-col items-center justify-center p-2">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="transform -rotate-90">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="8"
+            className="text-muted/20"
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={color}
+            strokeWidth="8"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            className="transition-all duration-500 ease-out"
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-2xl font-bold" style={{ color }}>
+            {value.toFixed(1)}
+          </span>
+          <span className="text-xs text-muted-foreground">{label}</span>
+        </div>
+      </div>
+      <span className="mt-2 text-sm font-medium text-center" style={{ color }}>
+        {description}
+      </span>
+    </div>
+  );
+};
 
 export const PortfolioAnalysis: React.FC = () => {
   const { stocks } = usePortfolio();
@@ -20,6 +74,7 @@ export const PortfolioAnalysis: React.FC = () => {
   const [technicalData, setTechnicalData] = useState<Record<string, IndicatorAnalysis>>({});
   const [newsAnalysis, setNewsAnalysis] = useState<{ content: string; citations: string[] } | null>(null);
   const [expandedStocks, setExpandedStocks] = useState<Record<string, boolean>>({});
+  const [apiErrors, setApiErrors] = useState<Record<string, any>>({});
 
   const handleAnalyzePortfolio = async () => {
     if (stocks.length === 0) {
@@ -32,23 +87,41 @@ export const PortfolioAnalysis: React.FC = () => {
     }
 
     setLoading(true);
+    setApiErrors({});
     try {
-      // Get technical analysis
       const technicalAnalysis: Record<string, IndicatorAnalysis> = {};
+      const errors: Record<string, any> = {};
+
       for (const stock of stocks) {
-        const analysis = await analyzeTechnicalIndicators(stock);
-        technicalAnalysis[stock.symbol] = analysis;
+        try {
+          const analysis = await analyzeTechnicalIndicators(stock);
+          technicalAnalysis[stock.symbol] = analysis;
+          if (analysis.errors) {
+            errors[stock.symbol] = analysis.errors;
+          }
+        } catch (error) {
+          console.error(`Error analyzing ${stock.symbol}:`, error);
+          errors[stock.symbol] = error instanceof Error ? error.message : String(error);
+        }
       }
       setTechnicalData(technicalAnalysis);
+      setApiErrors(errors);
 
-      // Get market news and insights
       const news = await getPortfolioAnalysis(stocks);
       setNewsAnalysis(news);
 
-      toast({
-        title: "Analysis Updated",
-        description: "Latest market data and technical indicators received",
-      });
+      if (Object.keys(errors).length > 0) {
+        toast({
+          title: "Some Analysis Failed",
+          description: "Check the error details for more information",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Analysis Updated",
+          description: "Latest market data and technical indicators received",
+        });
+      }
     } catch (error) {
       console.error("Error analyzing portfolio:", error);
       toast({
@@ -72,24 +145,20 @@ export const PortfolioAnalysis: React.FC = () => {
     }
   };
 
-  const getIndicatorStrength = (value: number, type: "RSI" | "ADX" | "MACD" | "EMA" | "BBANDS") => {
+  const getIndicatorDetails = (value: number, type: "RSI" | "ADX" | "MACD") => {
     switch (type) {
       case "RSI":
-        if (value > 70) return { strength: "Overbought", color: "text-red-500" };
-        if (value < 30) return { strength: "Oversold", color: "text-green-500" };
-        return { strength: "Neutral", color: "text-yellow-500" };
+        if (value > 70) return { color: "#ef4444", description: "Overbought" };
+        if (value < 30) return { color: "#22c55e", description: "Oversold" };
+        return { color: "#eab308", description: "Neutral" };
       case "ADX":
-        if (value > 25) return { strength: "Strong Trend", color: "text-green-500" };
-        return { strength: "Weak Trend", color: "text-yellow-500" };
+        if (value > 25) return { color: "#22c55e", description: "Strong Trend" };
+        return { color: "#eab308", description: "Weak Trend" };
       case "MACD":
-        if (value > 0) return { strength: "Bullish", color: "text-green-500" };
-        return { strength: "Bearish", color: "text-red-500" };
-      case "EMA":
-        return { strength: "Value", color: "text-blue-500" };
-      case "BBANDS":
-        return { strength: "Bands", color: "text-purple-500" };
+        if (value > 0) return { color: "#22c55e", description: "Bullish" };
+        return { color: "#ef4444", description: "Bearish" };
       default:
-        return { strength: "Neutral", color: "text-yellow-500" };
+        return { color: "#eab308", description: "Neutral" };
     }
   };
 
@@ -124,6 +193,15 @@ export const PortfolioAnalysis: React.FC = () => {
           >
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </motion.div>
+        )}
+
+        {!loading && Object.keys(apiErrors).length > 0 && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Some API calls failed. Check the details below.
+            </AlertDescription>
+          </Alert>
         )}
 
         {!loading && newsAnalysis && (
@@ -172,17 +250,7 @@ export const PortfolioAnalysis: React.FC = () => {
             <h3 className="text-lg font-semibold">Technical Analysis</h3>
             {stocks.map((stock) => {
               const analysis = technicalData[stock.symbol];
-              if (!analysis) return null;
-
-              const latestRSI = analysis.rsi[0]?.value || 50;
-              const latestADX = analysis.adx[0]?.value || 25;
-              const latestMACD = analysis.macd[0]?.macd || 0;
-              const latestEMA = analysis.ema[0]?.value || 0;
-              const latestBBands = analysis.bbands[0] || { upper_band: 0, middle_band: 0, lower_band: 0 };
-
-              const rsiStatus = getIndicatorStrength(latestRSI, "RSI");
-              const adxStatus = getIndicatorStrength(latestADX, "ADX");
-              const macdStatus = getIndicatorStrength(latestMACD, "MACD");
+              const errors = apiErrors[stock.symbol];
 
               return (
                 <Collapsible
@@ -197,9 +265,11 @@ export const PortfolioAnalysis: React.FC = () => {
                         <p className="text-sm text-muted-foreground">Technical Analysis</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={getTrendColor(analysis.overall_trend)}>
-                          {analysis.overall_trend.toUpperCase()}
-                        </Badge>
+                        {analysis && (
+                          <Badge variant="outline" className={getTrendColor(analysis.overall_trend)}>
+                            {analysis.overall_trend.toUpperCase()}
+                          </Badge>
+                        )}
                         <CollapsibleTrigger asChild>
                           <Button variant="ghost" size="sm">
                             {expandedStocks[stock.symbol] ? (
@@ -212,76 +282,70 @@ export const PortfolioAnalysis: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>RSI ({latestRSI.toFixed(2)})</span>
-                          <span className={rsiStatus.color}>{rsiStatus.strength}</span>
-                        </div>
-                        <Progress value={latestRSI} className="h-2" />
-                      </div>
+                    {errors && (
+                      <Alert variant="destructive" className="mb-4">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                          <div className="text-xs font-mono overflow-auto">
+                            {JSON.stringify(errors, null, 2)}
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    )}
 
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>ADX ({latestADX.toFixed(2)})</span>
-                          <span className={adxStatus.color}>{adxStatus.strength}</span>
+                    {analysis && (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <CircularGauge
+                            value={analysis.rsi[0]?.value || 50}
+                            maxValue={100}
+                            color={getIndicatorDetails(analysis.rsi[0]?.value || 50, "RSI").color}
+                            label="RSI"
+                            description={getIndicatorDetails(analysis.rsi[0]?.value || 50, "RSI").description}
+                          />
+                          <CircularGauge
+                            value={analysis.adx[0]?.value || 0}
+                            maxValue={100}
+                            color={getIndicatorDetails(analysis.adx[0]?.value || 0, "ADX").color}
+                            label="ADX"
+                            description={getIndicatorDetails(analysis.adx[0]?.value || 0, "ADX").description}
+                          />
+                          <CircularGauge
+                            value={Math.abs(analysis.macd[0]?.macd || 0)}
+                            maxValue={2}
+                            color={getIndicatorDetails(analysis.macd[0]?.macd || 0, "MACD").color}
+                            label="MACD"
+                            description={getIndicatorDetails(analysis.macd[0]?.macd || 0, "MACD").description}
+                          />
                         </div>
-                        <Progress value={latestADX} className="h-2" />
-                      </div>
 
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>MACD ({latestMACD.toFixed(2)})</span>
-                          <span className={macdStatus.color}>{macdStatus.strength}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {latestMACD > 0 ? (
-                            <TrendingUp className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <TrendingDown className="h-4 w-4 text-red-500" />
-                          )}
-                          <Progress value={Math.abs(latestMACD) * 10} className="h-2" />
-                        </div>
-                      </div>
-
-                      <CollapsibleContent className="space-y-4 mt-4">
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium">Raw Technical Data</h4>
-                          <div className="grid grid-cols-1 gap-4">
-                            <div className="space-y-2">
-                              <h5 className="text-xs text-muted-foreground">RSI Data (1 Month)</h5>
-                              <div className="bg-background/50 p-3 rounded-lg text-xs font-mono">
-                                {JSON.stringify(analysis.rsi, null, 2)}
+                        <CollapsibleContent className="space-y-4 mt-4">
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-medium">Raw Technical Data</h4>
+                            <div className="grid grid-cols-1 gap-4">
+                              <div className="space-y-2">
+                                <h5 className="text-xs text-muted-foreground">RSI Data (1 Month)</h5>
+                                <div className="bg-background/50 p-3 rounded-lg text-xs font-mono">
+                                  {JSON.stringify(analysis.rsi, null, 2)}
+                                </div>
                               </div>
-                            </div>
-                            <div className="space-y-2">
-                              <h5 className="text-xs text-muted-foreground">ADX Data (1 Month)</h5>
-                              <div className="bg-background/50 p-3 rounded-lg text-xs font-mono">
-                                {JSON.stringify(analysis.adx, null, 2)}
+                              <div className="space-y-2">
+                                <h5 className="text-xs text-muted-foreground">ADX Data (1 Month)</h5>
+                                <div className="bg-background/50 p-3 rounded-lg text-xs font-mono">
+                                  {JSON.stringify(analysis.adx, null, 2)}
+                                </div>
                               </div>
-                            </div>
-                            <div className="space-y-2">
-                              <h5 className="text-xs text-muted-foreground">MACD Data (1 Month)</h5>
-                              <div className="bg-background/50 p-3 rounded-lg text-xs font-mono">
-                                {JSON.stringify(analysis.macd, null, 2)}
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <h5 className="text-xs text-muted-foreground">EMA Data (1 Month)</h5>
-                              <div className="bg-background/50 p-3 rounded-lg text-xs font-mono">
-                                {JSON.stringify(analysis.ema, null, 2)}
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <h5 className="text-xs text-muted-foreground">Bollinger Bands (1 Month)</h5>
-                              <div className="bg-background/50 p-3 rounded-lg text-xs font-mono">
-                                {JSON.stringify(analysis.bbands, null, 2)}
+                              <div className="space-y-2">
+                                <h5 className="text-xs text-muted-foreground">MACD Data (1 Month)</h5>
+                                <div className="bg-background/50 p-3 rounded-lg text-xs font-mono">
+                                  {JSON.stringify(analysis.macd, null, 2)}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </CollapsibleContent>
-                    </div>
+                        </CollapsibleContent>
+                      </div>
+                    )}
                   </Card>
                 </Collapsible>
               );
