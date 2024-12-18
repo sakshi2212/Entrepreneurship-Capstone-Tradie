@@ -24,12 +24,26 @@ export const ChatInterface: React.FC = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const lastSymbolRef = useRef<string>(chartData.symbol);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (lastSymbolRef.current !== chartData.symbol) {
+      setMessages([
+        {
+          role: "assistant",
+          content: `Switched to analyzing ${chartData.symbol}. What would you like to know about this stock?`,
+          timestamp: Date.now(),
+        }
+      ]);
+      lastSymbolRef.current = chartData.symbol;
+    }
+  }, [chartData.symbol]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
