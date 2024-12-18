@@ -99,7 +99,7 @@ export const TradingViewWidget: React.FC = () => {
       <div className="p-4 border-b border-border">
         <SymbolSwitcher />
       </div>
-      <div ref={containerRef} className="tradingview-widget-container h-[calc(100%-5rem)] w-full" />
+      <div ref={containerRef} className="tradingview-widget-container h-[calc(100vh-10rem)] w-full" />
     </Card>
   );
 };
