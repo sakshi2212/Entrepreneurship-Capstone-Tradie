@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useRouter } from "next/router";
 import { useState } from "react";
 import { TradingViewWidget } from "@/components/TradingViewWidget";
 import { ChatInterface } from "@/components/ChatInterface";
@@ -5,9 +7,22 @@ import { PortfolioManager } from "@/components/PortfolioManager";
 import { PortfolioAnalysis } from "@/components/PortfolioAnalysis";
 import { Navigation } from "@/components/Navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Home() {
   const [activeView, setActiveView] = useState<"trading" | "portfolio">("trading");
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isAuthenticated, router]);
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">

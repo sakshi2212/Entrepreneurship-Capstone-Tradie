@@ -26,15 +26,43 @@ export interface IndicatorAnalysis {
     lower_band: number;
   }[];
   overall_trend: "bullish" | "bearish" | "neutral";
-  errors?: Record<string, string>;
+  errors?: Record<string, any>;
 }
+
+const formatSymbol = (symbol: string): string => {
+  // Remove exchange prefix if present (e.g., "NASDAQ:" or "NYSE:")
+  return symbol.includes(":") ? symbol.split(":")[1] : symbol;
+};
 
 const fetchIndicator = async (endpoint: string, symbol: string): Promise<any> => {
   try {
-    const url = `${BASE_URL}/${endpoint}?symbol=${symbol}&interval=1month&apikey=${API_KEY}`;
+    const formattedSymbol = formatSymbol(symbol);
+    const params = new URLSearchParams({
+      symbol: formattedSymbol,
+      interval: "1month",
+      apikey: API_KEY,
+      outputsize: "30",
+      series_type: "close",
+      time_period: endpoint === "ema" ? "9" : endpoint === "bbands" ? "20" : "14"
+    });
+
+    const url = `${BASE_URL}/${endpoint}?${params.toString()}`;
+    console.log(`Fetching ${endpoint} for ${formattedSymbol}:`, url);
+
     const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(JSON.stringify({
+        endpoint,
+        error: `HTTP error! status: ${response.status}`,
+        url,
+        status: response.status,
+        statusText: response.statusText
+      }));
+    }
+
     const data = await response.json();
-    
+    console.log(`${endpoint} API Response:`, data);
+
     if (data.status === "error") {
       throw new Error(JSON.stringify({
         endpoint,
@@ -53,7 +81,10 @@ const fetchIndicator = async (endpoint: string, symbol: string): Promise<any> =>
       }));
     }
 
-    return data.values;
+    return {
+      values: data.values,
+      meta: data.meta
+    };
   } catch (error) {
     console.error(`Error fetching ${endpoint} for ${symbol}:`, error);
     throw error;
@@ -61,7 +92,7 @@ const fetchIndicator = async (endpoint: string, symbol: string): Promise<any> =>
 };
 
 export const analyzeTechnicalIndicators = async (stock: Stock): Promise<IndicatorAnalysis> => {
-  const errors: Record<string, string> = {};
+  const errors: Record<string, any> = {};
   const indicators = {
     adx: [] as TechnicalIndicator[],
     rsi: [] as TechnicalIndicator[],
@@ -71,49 +102,63 @@ export const analyzeTechnicalIndicators = async (stock: Stock): Promise<Indicato
   };
 
   try {
-    // Fetch each indicator separately to handle individual errors
     try {
       const adxData = await fetchIndicator("adx", stock.symbol);
-      indicators.adx = adxData.map((d: any) => ({ 
-        datetime: d.datetime, 
-        value: parseFloat(d.adx) 
+      indicators.adx = adxData.values.map((d: any) => ({
+        datetime: d.datetime,
+        value: parseFloat(d.adx)
       }));
+      console.log("ADX Data:", adxData);
     } catch (error) {
-      errors.adx = error instanceof Error ? error.message : "Failed to fetch ADX data";
+      errors.adx = error instanceof Error ? JSON.parse(error.message) : { error: "Failed to fetch ADX data" };
     }
 
     try {
       const rsiData = await fetchIndicator("rsi", stock.symbol);
-      indicators.rsi = rsiData.map((d: any) => ({ 
-        datetime: d.datetime, 
-        value: parseFloat(d.rsi) 
+      indicators.rsi = rsiData.values.map((d: any) => ({
+        datetime: d.datetime,
+        value: parseFloat(d.rsi)
       }));
+      console.log("RSI Data:", rsiData);
     } catch (error) {
-      errors.rsi = error instanceof Error ? error.message : "Failed to fetch RSI data";
+      errors.rsi = error instanceof Error ? JSON.parse(error.message) : { error: "Failed to fetch RSI data" };
     }
 
     try {
       const macdData = await fetchIndicator("macd", stock.symbol);
-      indicators.macd = macdData;
+      indicators.macd = macdData.values.map((d: any) => ({
+        datetime: d.datetime,
+        macd: parseFloat(d.macd),
+        macd_signal: parseFloat(d.macd_signal),
+        macd_hist: parseFloat(d.macd_hist)
+      }));
+      console.log("MACD Data:", macdData);
     } catch (error) {
-      errors.macd = error instanceof Error ? error.message : "Failed to fetch MACD data";
+      errors.macd = error instanceof Error ? JSON.parse(error.message) : { error: "Failed to fetch MACD data" };
     }
 
     try {
       const emaData = await fetchIndicator("ema", stock.symbol);
-      indicators.ema = emaData.map((d: any) => ({ 
-        datetime: d.datetime, 
-        value: parseFloat(d.ema) 
+      indicators.ema = emaData.values.map((d: any) => ({
+        datetime: d.datetime,
+        value: parseFloat(d.ema)
       }));
+      console.log("EMA Data:", emaData);
     } catch (error) {
-      errors.ema = error instanceof Error ? error.message : "Failed to fetch EMA data";
+      errors.ema = error instanceof Error ? JSON.parse(error.message) : { error: "Failed to fetch EMA data" };
     }
 
     try {
       const bbandsData = await fetchIndicator("bbands", stock.symbol);
-      indicators.bbands = bbandsData;
+      indicators.bbands = bbandsData.values.map((d: any) => ({
+        datetime: d.datetime,
+        upper_band: parseFloat(d.upper_band),
+        middle_band: parseFloat(d.middle_band),
+        lower_band: parseFloat(d.lower_band)
+      }));
+      console.log("Bollinger Bands Data:", bbandsData);
     } catch (error) {
-      errors.bbands = error instanceof Error ? error.message : "Failed to fetch Bollinger Bands data";
+      errors.bbands = error instanceof Error ? JSON.parse(error.message) : { error: "Failed to fetch Bollinger Bands data" };
     }
 
     const latestRSI = indicators.rsi[0]?.value || 50;
